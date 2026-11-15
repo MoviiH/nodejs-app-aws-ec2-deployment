@@ -1,72 +1,48 @@
-# Deploying a Node Js Application on AWS EC2
+# Node.js App Deployment on AWS EC2
 
-### Testing the project locally
+Deployed a Node.js (Express + Stripe) web app on an AWS EC2 Ubuntu server, configured networking with security groups, and made it publicly accessible over the internet.
 
-1. Clone this project
-```
-git clone https://github.com/verma-kunal/AWS-Session.git
-```
-2. Setup the following environment variables - `(.env)` file
-```
-DOMAIN= ""
-PORT=3000
-STATIC_DIR="./client"
+## Architecture
+User (browser) -> Internet -> Security Group (port 3000) -> EC2 t3.micro (Ubuntu 24.04, Node.js) in the default VPC, eu-north-1
 
-PUBLISHABLE_KEY=""
-SECRET_KEY=""
-```
-3. Initialise and start the project
-```
-npm install
-npm run start
-```
+## Tech Used
+AWS EC2, Security Groups, VPC, IAM, Ubuntu 24.04, Node.js, npm, Git, SSH
 
-### Set up an AWS EC2 instance
+## Steps I Followed
+1. Created an IAM user instead of using the root account
+2. Launched an EC2 t3.micro instance (Ubuntu 24.04) with a key pair
+3. Connected over SSH from WSL: ssh -i key.pem ubuntu@<public-ip>
+4. Installed Node.js and npm
+5. Cloned the app and created a .env file for secrets (never committed)
+6. Installed dependencies with npm install and started the app with npm run start
+7. Added an inbound rule for TCP port 3000 in the security group
+8. Opened http://<public-ip>:3000 in the browser
 
-1. Create an IAM user & login to your AWS Console
-    - Access Type - Password
-    - Permissions - Admin
-2. Create an EC2 instance
-    - Select an OS image - Ubuntu
-    - Create a new key pair & download `.pem` file
-    - Instance type - t2.micro
-3. Connecting to the instance using ssh
-```
-ssh -i instance.pem ubunutu@<IP_ADDRESS>
-```
+## Screenshots
+**EC2 instance running**
+![EC2 running](screenshots/01-ec2-running.png)
 
-### Configuring Ubuntu on remote VM
+**Security group inbound rules**
+![Security group](screenshots/02-security-group.png)
 
-1. Updating the outdated packages and dependencies
-```
-sudo apt update
-```
-3. Install Git - [Guide by DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-install-git-on-ubuntu-22-04) 
-4. Configure Node.js and `npm` - [Guide by DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-22-04)
+**App running on the server**
+![Terminal](screenshots/03-terminal.png)
 
-### Deploying the project on AWS
+**App live on the public IP**
+![App live](screenshots/04-app-live.png)
 
-1. Clone this project in the remote VM
-```
-git clone https://github.com/verma-kunal/AWS-Session.git
-```
-2. Setup the following environment variables - `(.env)` file
-```
-DOMAIN= ""
-PORT=3000
-STATIC_DIR="./client"
+## Problems I Hit and How I Fixed Them
+- **App not loading in the browser:** port 3000 was blocked. Fixed by adding a TCP 3000 inbound rule to the security group.
+- **localhost vs public IP:** the app said localhost:3000, which only works on the server itself. From outside I used the EC2 public IP.
+- **GitHub blocked my push:** push protection found a hard-coded Stripe test secret key in the Dockerfile in the original commit history. I removed the hard-coded keys and started a clean Git history, so no secrets are published. Secrets now live only in .env.
 
-PUBLISHABLE_KEY=""
-SECRET_KEY=""
-```
-> For this project, we'll have to set up an [Elastic IP Address](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html) for our EC2 & that would be our `DOMAIN`
+## Improvements I Would Make
+- Restrict SSH (port 22) to my IP only instead of 0.0.0.0/0
+- Put Nginx in front as a reverse proxy on port 80
+- Add HTTPS with a free Let's Encrypt certificate
+- Use PM2 so the app keeps running after I close SSH or the server restarts
+- Automate deployment with a CI/CD pipeline (GitHub Actions)
+- Store secrets in AWS Secrets Manager instead of a .env file
 
-3. Initialise and start the project
-```
-npm install
-npm run start
-```
-
-> NOTE - We will have to edit the **inbound rules** in the security group of our EC2, in order to allow traffic from our particular port
-
-### Project is deployed on AWS 🎉
+## Credit
+App code by Kunal Verma (github.com/verma-kunal/AWS-Session). The deployment, troubleshooting and documentation are my own work.
